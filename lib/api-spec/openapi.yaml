@@ -1,0 +1,852 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: licensing
+    description: License requests, activation, and administration
+  - name: print-shop
+    description: QR-based customer document intake and print-shop order management
+  - name: auth
+    description: First-party shop and administrator accounts
+paths:
+  /auth/shop/register:
+    post:
+      operationId: registerShopAccount
+      tags: [auth]
+      summary: Register a shop account using its license
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShopAccountRegistrationInput"
+      responses:
+        "201":
+          description: Shop account created and signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionResponse"
+        "403":
+          description: License does not match this shop or installation
+        "409":
+          description: Account already exists for the email or license
+  /auth/admin/register:
+    post:
+      operationId: registerAdminAccount
+      tags: [auth]
+      summary: Complete the one-time first administrator setup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminAccountRegistrationInput"
+      responses:
+        "201":
+          description: Administrator account created and signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionResponse"
+        "403":
+          description: Setup code or administrator email is invalid
+        "409":
+          description: Administrator setup has already been completed
+  /auth/login:
+    post:
+      operationId: loginAccount
+      tags: [auth]
+      summary: Sign in to a shop or administrator account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountLoginInput"
+      responses:
+        "200":
+          description: Signed-in account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionResponse"
+        "401":
+          description: Email or password is incorrect
+        "403":
+          description: Shop account is not active on this installation
+        "409":
+          description: Existing shop account is linked to another installation; explicit transfer confirmation is required
+        "429":
+          description: Too many sign-in attempts
+  /auth/me:
+    get:
+      operationId: getCurrentAccount
+      tags: [auth]
+      summary: Get the current signed-in account
+      responses:
+        "200":
+          description: Current account and license status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionResponse"
+        "401":
+          description: Sign-in required
+  /auth/logout:
+    post:
+      operationId: logoutAccount
+      tags: [auth]
+      summary: End the current account session
+      responses:
+        "204":
+          description: Session ended
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /license-requests:
+    get:
+      operationId: listLicenseRequests
+      tags: [licensing]
+      summary: List license requests for the signed-in administrator
+      security:
+        - SessionCookie: []
+        - DesktopBearer: []
+      responses:
+        "200":
+          description: License requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminLicenseRequest"
+        "401":
+          description: Authentication required
+        "403":
+          description: Administrator access required
+    post:
+      operationId: createLicenseRequest
+      tags: [licensing]
+      summary: Submit a license approval request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LicenseRequestInput"
+      responses:
+        "201":
+          description: Request submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LicenseRequest"
+        "409":
+          description: A pending request already exists for this device
+  /license-requests/{requestId}:
+    patch:
+      operationId: reviewLicenseRequest
+      tags: [licensing]
+      summary: Approve or decline a license request
+      security:
+        - SessionCookie: []
+        - DesktopBearer: []
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LicenseReviewInput"
+      responses:
+        "200":
+          description: Request reviewed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LicenseReviewResult"
+        "401":
+          description: Authentication required
+        "403":
+          description: Administrator access required
+        "404":
+          description: Request not found
+  /licenses/activate:
+    post:
+      operationId: activateLicense
+      tags: [licensing]
+      summary: Activate an approved license on this device
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LicenseActivationInput"
+      responses:
+        "200":
+          description: License activation status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LicenseStatus"
+        "403":
+          description: License key is invalid, revoked, or assigned to another device
+  /licenses/status:
+    get:
+      operationId: getLicenseStatus
+      tags: [licensing]
+      summary: Check the current license status for a device
+      parameters:
+        - name: deviceId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: licenseKey
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: License status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LicenseStatus"
+        "403":
+          description: License is not active on this device
+  /shops/me:
+    get:
+      operationId: getMyPrintShop
+      tags: [print-shop]
+      summary: Get the shop linked to the active Windows installation
+      security:
+        - SessionCookie: []
+        - DesktopBearer: []
+      responses:
+        "200":
+          description: Shop profile, or null when not set up
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyPrintShopResponse"
+        "401":
+          description: Valid activated installation required
+    put:
+      operationId: saveMyPrintShop
+      tags: [print-shop]
+      summary: Create or update the shop profile for this installation
+      security:
+        - SessionCookie: []
+        - DesktopBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrintShopProfileInput"
+      responses:
+        "200":
+          description: Saved shop profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrintShopProfile"
+        "401":
+          description: Valid activated installation required
+  /shops/me/requests:
+    get:
+      operationId: listMyShopPrintRequests
+      tags: [print-shop]
+      summary: List separate customer requests for this installation
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/PrintShopRequestStatus"
+      security:
+        - SessionCookie: []
+        - DesktopBearer: []
+      responses:
+        "200":
+          description: One page of customer print requests and their separately stored files
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShopPrintRequestPage"
+        "401":
+          description: Valid activated installation required
+  /shops/me/requests/{requestId}:
+    patch:
+      operationId: updateMyShopPrintRequest
+      tags: [print-shop]
+      summary: Update a request status, quote, and customer-visible note
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShopPrintRequestUpdate"
+      security:
+        - SessionCookie: []
+        - DesktopBearer: []
+      responses:
+        "200":
+          description: Updated customer print request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShopPrintRequest"
+        "401":
+          description: Valid activated installation required
+        "404":
+          description: Request not found for this installation
+        "409":
+          description: Invalid status transition
+  /shops/me/requests/{requestId}/files/{fileId}:
+    get:
+      operationId: downloadMyShopRequestFile
+      tags: [print-shop]
+      summary: Download one file from a customer request
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      security:
+        - SessionCookie: []
+        - DesktopBearer: []
+      responses:
+        "200":
+          description: Private customer file bytes
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "401":
+          description: Valid activated installation required
+        "404":
+          description: File not found or retention period ended
+  /shops/public/{shopCode}:
+    get:
+      operationId: getPublicPrintShop
+      tags: [print-shop]
+      summary: Get the public profile behind a permanent shop QR code
+      parameters:
+        - name: shopCode
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 12
+            maxLength: 32
+      responses:
+        "200":
+          description: Public shop details and print options
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicPrintShop"
+        "404":
+          description: Shop QR code not found
+  /shops/public/{shopCode}/upload-url:
+    post:
+      operationId: createPrintShopUpload
+      tags: [print-shop]
+      summary: Request a short-lived private upload URL for a customer file
+      parameters:
+        - name: shopCode
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 12
+            maxLength: 32
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrintShopUploadInput"
+      responses:
+        "201":
+          description: Temporary upload URL and ticket
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrintShopUploadTicket"
+        "400":
+          description: Unsupported file or invalid metadata
+        "404":
+          description: Shop QR code not found
+        "429":
+          description: Upload request rate limit exceeded
+  /shops/public/{shopCode}/requests:
+    post:
+      operationId: submitPrintShopRequest
+      tags: [print-shop]
+      summary: Submit a customer's files as one separately tracked print request
+      parameters:
+        - name: shopCode
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 12
+            maxLength: 32
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrintShopRequestInput"
+      responses:
+        "201":
+          description: Request accepted and tracking code created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrintShopRequestReceipt"
+        "400":
+          description: Invalid customer details, files, or print settings
+        "404":
+          description: Shop QR code not found
+        "409":
+          description: Shop is not accepting requests or an upload ticket was already used
+  /shops/track/{trackingCode}:
+    get:
+      operationId: getPrintShopRequestTracking
+      tags: [print-shop]
+      summary: Get a privacy-safe order status using its unguessable tracking code
+      parameters:
+        - name: trackingCode
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 16
+            maxLength: 32
+      responses:
+        "200":
+          description: Public request status and status history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrintShopTracking"
+        "404":
+          description: Tracking code not found or request expired
+  /shops/track/{trackingCode}/accept-quote:
+    post:
+      operationId: acceptPrintShopQuote
+      tags: [print-shop]
+      summary: Accept a shop's quote and authorize the request to proceed
+      parameters:
+        - name: trackingCode
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 16
+            maxLength: 32
+      responses:
+        "200":
+          description: Quote accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrintShopTracking"
+        "404":
+          description: Tracking code not found or request expired
+        "409":
+          description: Request is not awaiting quote acceptance
+components:
+  securitySchemes:
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: wps_session
+    DesktopBearer:
+      type: http
+      scheme: bearer
+  schemas:
+    AuthRole:
+      type: string
+      enum: [admin, shop]
+    AuthAccount:
+      type: object
+      properties:
+        email: { type: string, format: email }
+        role: { $ref: "#/components/schemas/AuthRole" }
+        deviceId: { type: ["string", "null"] }
+        licenseActive: { type: boolean }
+      required: [email, role, deviceId, licenseActive]
+    AuthSessionResponse:
+      type: object
+      properties:
+        account:
+          oneOf:
+            - $ref: "#/components/schemas/AuthAccount"
+            - type: "null"
+        accessToken: { type: ["string", "null"] }
+      required: [account, accessToken]
+    ShopAccountRegistrationInput:
+      type: object
+      properties:
+        licenseKey: { type: string, minLength: 12, maxLength: 128 }
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 12, maxLength: 256 }
+        deviceId: { type: string, minLength: 8, maxLength: 128 }
+        client: { type: string, enum: [desktop, browser] }
+      required: [licenseKey, email, password, deviceId, client]
+    AdminAccountRegistrationInput:
+      type: object
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 12, maxLength: 256 }
+        bootstrapSecret: { type: string, minLength: 16, maxLength: 512 }
+      required: [email, password, bootstrapSecret]
+    AccountLoginInput:
+      type: object
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 1, maxLength: 256 }
+        deviceId: { type: ["string", "null"], minLength: 8, maxLength: 128 }
+        client: { type: string, enum: [desktop, browser] }
+        transferInstallation: { type: boolean }
+      required: [email, password, client]
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    LicenseRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        deviceId:
+          type: string
+        deviceName:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, declined]
+        createdAt:
+          type: string
+        reviewedAt:
+          type: ["string", "null"]
+      required: [id, name, email, deviceId, deviceName, status, createdAt, reviewedAt]
+    AdminLicenseRequest:
+      allOf:
+        - $ref: "#/components/schemas/LicenseRequest"
+        - type: object
+          properties:
+            licenseKey:
+              type: ["string", "null"]
+          required: [licenseKey]
+    LicenseRequestInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        email:
+          type: string
+          format: email
+        deviceId:
+          type: string
+          minLength: 8
+          maxLength: 128
+        deviceName:
+          type: string
+          minLength: 1
+          maxLength: 120
+      required: [name, email, deviceId, deviceName]
+    LicenseReviewInput:
+      type: object
+      properties:
+        decision:
+          type: string
+          enum: [approve, decline]
+      required: [decision]
+    LicenseReviewResult:
+      type: object
+      properties:
+        request:
+          $ref: "#/components/schemas/LicenseRequest"
+        licenseKey:
+          type: ["string", "null"]
+      required: [request, licenseKey]
+    LicenseActivationInput:
+      type: object
+      properties:
+        licenseKey:
+          type: string
+          minLength: 12
+        deviceId:
+          type: string
+          minLength: 8
+          maxLength: 128
+      required: [licenseKey, deviceId]
+    LicenseStatus:
+      type: object
+      properties:
+        active:
+          type: boolean
+        email:
+          type: ["string", "null"]
+        deviceId:
+          type: string
+        activatedAt:
+          type: ["string", "null"]
+      required: [active, email, deviceId, activatedAt]
+    PrintShopRequestStatus:
+      type: string
+      enum: [received, quoted, approved, printing, ready, completed, cancelled]
+    PrintShopProfile:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        shopCode: { type: string }
+        shopName: { type: string }
+        phone: { type: string }
+        whatsappPhone: { type: string }
+        address: { type: string }
+        city: { type: string }
+        acceptingOrders: { type: boolean }
+        bwRatePaise: { type: integer }
+        colorRatePaise: { type: integer }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [id, shopCode, shopName, phone, whatsappPhone, address, city, acceptingOrders, bwRatePaise, colorRatePaise, createdAt, updatedAt]
+    MyPrintShopResponse:
+      type: object
+      properties:
+        shop:
+          oneOf:
+            - $ref: "#/components/schemas/PrintShopProfile"
+            - type: "null"
+      required: [shop]
+    PrintShopProfileInput:
+      type: object
+      properties:
+        shopName: { type: string, minLength: 2, maxLength: 100 }
+        phone: { type: string, minLength: 7, maxLength: 24 }
+        whatsappPhone: { type: string, minLength: 7, maxLength: 24 }
+        address: { type: string, maxLength: 240 }
+        city: { type: string, minLength: 2, maxLength: 80 }
+        acceptingOrders: { type: boolean }
+        bwRatePaise: { type: integer, minimum: 0, maximum: 100000 }
+        colorRatePaise: { type: integer, minimum: 0, maximum: 100000 }
+      required: [shopName, phone, whatsappPhone, address, city, acceptingOrders, bwRatePaise, colorRatePaise]
+    PublicPrintShop:
+      type: object
+      properties:
+        shopCode: { type: string }
+        shopName: { type: string }
+        phone: { type: string }
+        whatsappPhone: { type: string }
+        address: { type: string }
+        city: { type: string }
+        acceptingOrders: { type: boolean }
+        bwRatePaise: { type: integer }
+        colorRatePaise: { type: integer }
+      required: [shopCode, shopName, phone, whatsappPhone, address, city, acceptingOrders, bwRatePaise, colorRatePaise]
+    PrintShopUploadInput:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        sizeBytes: { type: integer, minimum: 1, maximum: 26214400 }
+        contentType:
+          type: string
+          enum: [application/pdf, image/jpeg, image/png, image/webp]
+        pageCount: { type: integer, minimum: 1, maximum: 1000 }
+      required: [name, sizeBytes, contentType, pageCount]
+    PrintShopUploadTicket:
+      type: object
+      properties:
+        ticketId: { type: string, format: uuid }
+        uploadUrl: { type: string, format: uri }
+        expiresAt: { type: string, format: date-time }
+      required: [ticketId, uploadUrl, expiresAt]
+    PrintShopRequestInput:
+      type: object
+      properties:
+        customerName: { type: string, minLength: 2, maxLength: 100 }
+        customerPhone: { type: string, maxLength: 24 }
+        uploadTicketIds:
+          type: array
+          minItems: 1
+          maxItems: 5
+          items: { type: string, format: uuid }
+        paperSize:
+          type: string
+          enum: [A4, A3, A5, Letter, Legal]
+        colorMode:
+          type: string
+          enum: [bw, color]
+        sides:
+          type: string
+          enum: [single, double]
+        copies: { type: integer, minimum: 1, maximum: 99 }
+        finishing:
+          type: string
+          enum: [none, staple, bind]
+        instructions: { type: string, maxLength: 500 }
+      required: [customerName, uploadTicketIds, paperSize, colorMode, sides, copies, finishing, instructions]
+    ShopRequestFile:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        mimeType: { type: string }
+        sizeBytes: { type: integer }
+        pageCount: { type: integer }
+      required: [id, name, mimeType, sizeBytes, pageCount]
+    ShopPrintRequest:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        trackingCode: { type: string }
+        customerName: { type: string }
+        customerPhone: { type: ["string", "null"] }
+        paperSize: { type: string }
+        colorMode: { type: string }
+        sides: { type: string }
+        copies: { type: integer }
+        finishing: { type: string }
+        instructions: { type: string }
+        status: { $ref: "#/components/schemas/PrintShopRequestStatus" }
+        quoteTotalPaise: { type: ["integer", "null"] }
+        publicMessage: { type: ["string", "null"] }
+        files:
+          type: array
+          items: { $ref: "#/components/schemas/ShopRequestFile" }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+      required: [id, trackingCode, customerName, customerPhone, paperSize, colorMode, sides, copies, finishing, instructions, status, quoteTotalPaise, publicMessage, files, createdAt, updatedAt, expiresAt]
+    ShopPrintRequestPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ShopPrintRequest"
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+        totalPages: { type: integer }
+      required: [items, page, pageSize, total, totalPages]
+    ShopPrintRequestUpdate:
+      type: object
+      properties:
+        status: { $ref: "#/components/schemas/PrintShopRequestStatus" }
+        quoteTotalPaise: { type: ["integer", "null"], minimum: 0, maximum: 100000000 }
+        publicMessage: { type: ["string", "null"], maxLength: 500 }
+      required: [status]
+    PrintShopRequestReceipt:
+      type: object
+      properties:
+        trackingCode: { type: string }
+        shopName: { type: string }
+        status: { $ref: "#/components/schemas/PrintShopRequestStatus" }
+        estimatedTotalPaise: { type: integer }
+        fileCount: { type: integer }
+        expiresAt: { type: string, format: date-time }
+      required: [trackingCode, shopName, status, estimatedTotalPaise, fileCount, expiresAt]
+    PrintShopRequestEvent:
+      type: object
+      properties:
+        status: { $ref: "#/components/schemas/PrintShopRequestStatus" }
+        message: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+      required: [status, message, createdAt]
+    PrintShopTracking:
+      type: object
+      properties:
+        trackingCode: { type: string }
+        shopName: { type: string }
+        city: { type: string }
+        whatsappPhone: { type: string }
+        status: { $ref: "#/components/schemas/PrintShopRequestStatus" }
+        paperSize: { type: string }
+        colorMode: { type: string }
+        sides: { type: string }
+        copies: { type: integer }
+        finishing: { type: string }
+        quoteTotalPaise: { type: ["integer", "null"] }
+        publicMessage: { type: ["string", "null"] }
+        fileCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        events:
+          type: array
+          items: { $ref: "#/components/schemas/PrintShopRequestEvent" }
+      required: [trackingCode, shopName, city, whatsappPhone, status, paperSize, colorMode, sides, copies, finishing, quoteTotalPaise, publicMessage, fileCount, createdAt, updatedAt, expiresAt, events]
+

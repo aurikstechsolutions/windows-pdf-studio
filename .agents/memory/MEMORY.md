@@ -1,0 +1,8 @@
+- [Print-shop QR ownership](print-shop-qr-ownership.md) — one licensed install per shop, isolated jobs, a separate admin portal, and first-party login only.
+- [Fixed app navigation](fixed-app-navigation.md) — keep the left navigation anchored across all pages while content scrolls.
+- [Compact page layout](compact-page-layout.md) — omit repeated page-title banners and keep actions with their page controls.
+- [Readable UI text](readable-ui-text.md) — keep text comfortably sized, high-contrast, and easy to understand across every screen.
+- [Platform-neutral frontend copy](platform-neutral-frontend-copy.md) — keep platform brand names and related language out of user-facing app text.
+- [PDF editing behavior](pdf-editing-reflow.md) — preserve original PDF pages and edit text or add objects directly at their on-page positions.
+- [Windows release signing](windows-release-signing.md) — only distribute trusted-signed Windows builds; the Replit Linux runner's NSIS build needs a working Wine toolchain.
+- [Replit dev API requests from Electron](replit-dev-api-requests.md) — send `X-Requested-With: XMLHttpRequest` on mutating API calls from the file-origin desktop client.

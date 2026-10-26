@@ -1,0 +1,17 @@
+appId: com.windowspdfstudio.desktop
+productName: Windows PDF Studio Test Build
+asar: true
+directories:
+  output: ../../generated-artifacts/windows-pdf-studio-unsigned-test
+files:
+  - dist/public/**/*
+  - electron/**/*
+  - '!electron/**/*.test.cjs'
+  - package.json
+win:
+  forceCodeSigning: false
+  signAndEditExecutable: false
+  target:
+    - target: portable
+      arch:
+        - x64

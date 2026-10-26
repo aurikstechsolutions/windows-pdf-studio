@@ -1,0 +1,22 @@
+appId: com.windowspdfstudio.desktop
+productName: Windows PDF Studio
+asar: true
+directories:
+  output: ../../generated-artifacts/windows-pdf-studio
+files:
+  - dist/public/**/*
+  - electron/**/*
+  - '!electron/**/*.test.cjs'
+  - package.json
+win:
+  forceCodeSigning: true
+  target:
+    - target: nsis
+      arch:
+        - x64
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true

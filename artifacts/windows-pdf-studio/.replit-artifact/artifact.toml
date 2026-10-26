@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Windows PDF Studio"
+description = "A Windows desktop PDF utility for viewing and cropping PDFs, exporting pages as images, arranging content on print sheets, and managing approved digital licenses."
+version = "1.0.0"
+id = "artifacts/windows-pdf-studio"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22878
+
+[services.development]
+run = "pnpm --filter @workspace/windows-pdf-studio run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/windows-pdf-studio", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/windows-pdf-studio/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22878"
+BASE_PATH = "/"

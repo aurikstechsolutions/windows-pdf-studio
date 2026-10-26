@@ -1,0 +1,165 @@
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  max-width: 1220px;
+  padding-bottom: 34px;
+}
+.settings-card {
+  padding: 21px;
+}
+.settings-card-heading,
+.settings-email-heading {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.settings-card-icon {
+  display: grid;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid #d9e8de;
+  border-radius: 10px;
+  background: #eaf4ec;
+  color: #397a57;
+}
+.settings-kicker {
+  color: #637e70;
+  font: 700 10px/1.35 var(--app-font-mono, monospace);
+  letter-spacing: .1em;
+}
+.settings-card-heading h2,
+.settings-email-heading h2 {
+  margin: 4px 0 0;
+  color: #304449;
+  font-size: 19px;
+  letter-spacing: -.035em;
+}
+.settings-card-description {
+  margin: 15px 0 19px;
+  color: #63736f;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.settings-price-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 790px;
+}
+.settings-rate-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #394c4d;
+  font-size: 13px;
+  font-weight: 700;
+}
+.settings-rate-input {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding-left: 12px;
+  overflow: hidden;
+  border: 1px solid #d4dfdc;
+  border-radius: 7px;
+  background: #fff;
+  color: #637771;
+}
+.settings-rate-input:focus-within {
+  border-color: #5c9a78;
+  box-shadow: 0 0 0 3px rgba(65,145,102,.12);
+}
+.settings-rate-input > span {
+  font-size: 15px;
+  font-weight: 700;
+}
+.settings-rate-input input {
+  width: 100%;
+  height: 100%;
+  padding: 0 11px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #243b3b;
+  font: 600 15px var(--app-font-sans, sans-serif);
+}
+.settings-rate-field small {
+  color: #63736f;
+  font-size: 12px;
+  font-weight: 500;
+}
+.settings-actions {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 2px;
+  padding-top: 15px;
+  border-top: 1px solid #e5ebe8;
+}
+.settings-rate-shop {
+  color: #63736f;
+  font-size: 12px;
+}
+.settings-feedback,
+.settings-callout {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 11px 12px;
+  border: 1px solid #d9e5dc;
+  border-radius: 7px;
+  background: #f3f8f4;
+  color: #405c49;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.settings-feedback.error,
+.settings-callout.error {
+  border-color: #efd8d3;
+  background: #fff6f3;
+  color: #894c42;
+}
+.settings-callout a {
+  margin-left: 4px;
+  color: #27714e;
+  font-weight: 800;
+  text-decoration: underline;
+}
+.settings-loading {
+  padding: 15px 0;
+  color: #63736f;
+  font-size: 13px;
+}
+.settings-email-section {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+.settings-email-heading {
+  padding: 0 2px;
+}
+.settings-page .email-page-embedded {
+  width: 100%;
+  max-width: none;
+  padding: 0;
+}
+.settings-spin {
+  animation: settings-spin 1s linear infinite;
+}
+@keyframes settings-spin { to { transform: rotate(360deg); } }
+@media(max-width: 620px) {
+  .settings-page { gap: 17px; }
+  .settings-card { padding: 16px; }
+  .settings-price-form { grid-template-columns: minmax(0, 1fr); gap: 13px; }
+  .settings-actions { grid-column: 1; align-items: flex-start; flex-direction: column; }
+  .settings-email-heading h2,.settings-card-heading h2 { font-size: 17px; }
+}
+@media(prefers-reduced-motion: reduce) {
+  .settings-spin { animation: none; }
+}
